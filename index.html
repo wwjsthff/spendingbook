@@ -23,7 +23,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .pages{flex:1;overflow:hidden;position:relative}
 .page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;padding:14px 16px 100px}.page.active{display:block}
 .subtab-bar{display:flex;border-bottom:.5px solid var(--border);margin:-14px -16px 16px}
-.subtab{flex:1;text-align:center;padding:13px 0;font-size:13px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent}
+.subtab{flex:1;text-align:center;padding:16px 0;font-size:14px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent}
 .subtab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500}
 .subpage{display:none}.subpage.active{display:block}
 .mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
@@ -100,7 +100,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .filter-row{display:flex;gap:8px;margin-bottom:12px}
 .ftab{flex:1;padding:8px;text-align:center;font-size:13px;border-radius:var(--r);background:var(--bg2);cursor:pointer;color:var(--text2)}
 .ftab.active{background:var(--text);color:var(--bg)}
-.room-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--bg2);border-top:.5px solid var(--border);padding:6px 16px;display:flex;justify-content:space-between;align-items:center;z-index:50;font-size:11px;color:var(--text3);padding-bottom:calc(6px + var(--safe-bottom))}
+.room-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--bg2);border-top:.5px solid var(--border);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;z-index:50;font-size:13px;color:var(--text2);padding-bottom:calc(10px + var(--safe-bottom))}
 </style>
 </head>
 <body>
@@ -311,9 +311,9 @@ function showRoomScreen(){
     <div style="font-size:13px;color:var(--text2);text-align:center">방 코드로 친구와 데이터를 공유해요</div>
     <div style="width:100%;display:flex;flex-direction:column;gap:10px;margin-top:8px">
       <button id="btn-create" style="width:100%;padding:14px;background:var(--text);color:var(--bg);border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer">새 방 만들기</button>
-      <div style="display:flex;gap:8px">
-        <input id="room-input" placeholder="방 코드 입력" maxlength="6" style="flex:1;padding:12px;border:1px solid var(--border2);border-radius:12px;font-size:15px;text-align:center;letter-spacing:4px;background:var(--bg);color:var(--text)" oninput="this.value=this.value.toUpperCase()"/>
-        <button id="btn-join" style="padding:12px 18px;background:var(--text);color:var(--bg);border:none;border-radius:12px;font-size:15px;cursor:pointer">입장</button>
+      <div style="display:flex;gap:8px;width:100%">
+        <input id="room-input" placeholder="방 코드 입력" maxlength="6" style="flex:1;min-width:0;padding:12px;border:1px solid var(--border2);border-radius:12px;font-size:15px;text-align:center;letter-spacing:4px;background:var(--bg);color:var(--text)" oninput="this.value=this.value.toUpperCase()"/>
+        <button id="btn-join" style="flex-shrink:0;padding:12px 20px;background:var(--text);color:var(--bg);border:none;border-radius:12px;font-size:15px;cursor:pointer">입장</button>
       </div>
       <div id="room-err" style="font-size:12px;color:var(--red);text-align:center;min-height:16px"></div>
     </div>`;
@@ -341,7 +341,7 @@ async function joinRoom(){
 function showRoomBar(){
   const bar=document.createElement('div');
   bar.className='room-bar';
-  bar.innerHTML='<span>방 코드: <b style="letter-spacing:2px;color:var(--text)">'+ROOM+'</b></span><button id="btn-leave" style="background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer">나가기</button>';
+  bar.innerHTML='<span>방 코드: <b style="letter-spacing:2px;color:var(--text);font-size:14px">'+ROOM+'</b></span><button id="btn-leave" style="background:none;border:none;font-size:13px;color:var(--text2);cursor:pointer;padding:4px 8px">나가기</button>';
   document.body.appendChild(bar);
   document.getElementById('btn-leave').onclick=()=>{
     if(confirm('방을 나가면 이 기기에서 연결이 끊겨요. 나갈까요?')){localStorage.removeItem('gb_room');location.reload();}
