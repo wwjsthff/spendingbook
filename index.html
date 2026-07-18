@@ -137,6 +137,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
     <div class="ftab active" onclick="setSettleFilter('unsettled',this)">정산 필요</div>
     <div class="ftab" onclick="setSettleFilter('all',this)">전체 내역</div>
   </div>
+  <div id="settle-summary"></div>
   <div id="settle-list" style="display:flex;flex-direction:column;gap:8px"></div>
 </div>
 <!-- 설정 -->
@@ -430,8 +431,23 @@ function renderSug(){
 window.applySug=function(i){const s=window.__sug[i];if(!s)return;document.getElementById('kp-desc').value=s.desc;popCat('kp-cat',s.cat);document.getElementById('sugrow').innerHTML='';};
 
 // ── 지출 추가 ──
+function applyMemberMode(){
+  const solo=members.length===1;
+  // 정산 탭 숨기기/보이기
+  const settleNav=document.querySelector('.tnav:nth-child(3)');
+  if(settleNav) settleNav.style.display=solo?'none':'';
+  // 혼자일 때 정산 탭 열려있으면 달력으로 이동
+  if(solo&&document.getElementById('page-settle').classList.contains('active')){
+    document.querySelector('.tnav:nth-child(1)').click();
+  }
+}
+
 window.openAdd=function(){
   kpRaw='';popMember('kp-payer');popCat('kp-cat');
+  // 멤버 1명이면 자동 선택
+  if(members.length===1){
+    document.getElementById('kp-payer').value=members[0].name;
+  }
   const ds=selDay?vY+'-'+String(vM+1).padStart(2,'0')+'-'+String(selDay).padStart(2,'0'):todayStr();
   document.getElementById('kp-date').value=ds;
   document.getElementById('kp-desc').value='';
@@ -512,6 +528,32 @@ function renderSettle(){
   const all=getMonthEntries();
   let items=settleFilter==='unsettled'?all.filter(e=>!e.settled):all;
   items=[...items].sort((a,b)=>a.date<b.date?1:-1);
+
+  // ── 정산 요약 (2명일 때만) ──
+  let summaryHTML='';
+  if(members.length===2){
+    const [A,B]=members;
+    // A가 B한테 줘야 할 금액 (미정산만)
+    const unsettled=all.filter(e=>!e.settled);
+    let aOwesB=0,bOwesA=0;
+    unsettled.forEach(e=>{
+      const half=Math.round(e.amount/2);
+      if(e.payer===A.name) bOwesA+=half;
+      else if(e.payer===B.name) aOwesB+=half;
+    });
+    const net=bOwesA-aOwesB; // 양수면 B가 A한테, 음수면 A가 B한테
+    if(unsettled.length>0){
+      let msg='';
+      const aColor=A.color,bColor=B.color;
+      if(net===0) msg='<span style="color:var(--text2)">정산 필요 없음 🎉</span>';
+      else if(net>0) msg='<span style="color:'+bColor+';font-weight:600">'+B.name+'</span> → <span style="color:'+aColor+';font-weight:600">'+A.name+'</span> <span style="font-weight:700;color:var(--red)">'+fmt(net)+'</span>';
+      else msg='<span style="color:'+aColor+';font-weight:600">'+A.name+'</span> → <span style="color:'+bColor+';font-weight:600">'+B.name+'</span> <span style="font-weight:700;color:var(--red)">'+fmt(Math.abs(net))+'</span>';
+      summaryHTML='<div style="background:var(--bg2);border-radius:var(--r);padding:13px 15px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:var(--text2)">미정산 합계</span><span style="font-size:14px">'+msg+'</span></div>';
+    }
+  }
+
+  document.getElementById('settle-summary').innerHTML=summaryHTML;
+
   if(!items.length){document.getElementById('settle-list').innerHTML='<div class="empty">'+(settleFilter==='unsettled'?'미정산 항목 없음 ✓':'내역 없음')+'</div>';return;}
   document.getElementById('settle-list').innerHTML=items.map(e=>{
     const cat=getCat(e.cat);
@@ -520,7 +562,7 @@ function renderSettle(){
     const payerColor=payerM?payerM.color:'#aaa';
     const other=members.find(m=>m.name!==e.payer);
     const otherColor=other?getMember(other.name)?.color||'#aaa':'#aaa';
-    const oweAmt=fmt(Math.round(e.amount/2));
+    const oweAmt=fmt(Math.round(e.amount/members.length));
     return'<div class="settle-item'+(e.settled?' done-row':'')+'"><div onclick="toggleSettle(\''+e.id+'\')" style="flex-shrink:0"><div class="scheck'+(e.settled?' done':'')+'"><i class="ti ti-check"></i></div></div><div class="cdot" style="background:'+cat.color+'"></div><div class="si-info"><div class="si-desc">'+e.desc+'</div><div class="si-meta">'+parseInt(mo)+'월 '+parseInt(d)+'일 · '+cat.name+(e.payer&&other?' · <span style="color:'+otherColor+';font-weight:600">'+other.name+'</span> → <span style="color:'+payerColor+';font-weight:600">'+e.payer+'</span>':'')+'</div></div><div class="si-right"><div class="si-amt">'+fmt(e.amount)+'</div>'+(e.payer&&other?'<div class="si-owe-amt'+(e.settled?' settled':'')+'">'+oweAmt+'</div>':'')+'</div></div>';
   }).join('');
 }
@@ -589,7 +631,7 @@ function renderMembers(){
 window.addMember=async function(){
   const name=document.getElementById('nm-name').value.trim();if(!name)return;
   members.push({id:'mu'+Date.now(),name,color:nmColor});
-  await fbSaveM();document.getElementById('nm-name').value='';renderMembers();
+  await fbSaveM();document.getElementById('nm-name').value='';renderMembers();applyMemberMode();
 };
 window.openEditMember=function(id){
   const m=members.find(x=>x.id===id);if(!m)return;
@@ -602,11 +644,11 @@ window.saveEditMember=async function(){
   const name=document.getElementById('em-name').value.trim();if(!name)return;
   const idx=members.findIndex(m=>m.id===editMemberId);
   if(idx>-1)members[idx]={...members[idx],name,color:emColor};
-  await fbSaveM();closeM('m-member');renderMembers();renderCal();renderSettle();
+  await fbSaveM();closeM('m-member');renderMembers();renderCal();renderSettle();applyMemberMode();
 };
 window.deleteMember=async function(){
   members=members.filter(m=>m.id!==editMemberId);
-  await fbSaveM();closeM('m-member');renderMembers();renderSettle();
+  await fbSaveM();closeM('m-member');renderMembers();renderSettle();applyMemberMode();
 };
 
 // ── 네비게이션 ──
@@ -628,7 +670,7 @@ window.closeM=closeM;window.bgClose=bgClose;
 // ── 초기화 ──
 const _n=new Date();vY=_n.getFullYear();vM=_n.getMonth();
 if(!ROOM){showRoomScreen();}
-else{fbLoad().then(()=>showRoomBar());}
+else{fbLoad().then(()=>{showRoomBar();applyMemberMode();});}
 </script>
 </body>
 </html>
